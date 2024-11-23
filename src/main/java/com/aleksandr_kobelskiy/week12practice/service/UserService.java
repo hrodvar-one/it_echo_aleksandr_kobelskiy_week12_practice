@@ -1,18 +1,43 @@
 package com.aleksandr_kobelskiy.week12practice.service;
 
-import com.aleksandr_kobelskiy.week12practice.model.User;
+import com.aleksandr_kobelskiy.week12practice.entity.Status;
+import com.aleksandr_kobelskiy.week12practice.entity.UserEntity;
+import com.aleksandr_kobelskiy.week12practice.entity.UserRole;
+import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
-public interface UserService {
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    User register(User user);
+    public Mono<UserEntity> registerUser(UserEntity user) {
+        return userRepository.save(
+                user.toBuilder()
+                .password(passwordEncoder.encode(user.getPassword()))
+                        .role(UserRole.USER)
+                        .status(Status.ACTIVE)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build()
+        ).doOnSuccess(u -> {
+            log.info("In registerUser - user: {} created", u);
+        });
+    }
 
-    List<User> getAll();
+    public Mono<UserEntity> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
 
-    User findByUsername(String username);
-
-    User findById(Long id);
-
-    void deleteById(Long id);
+    public Mono<UserEntity> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
 }

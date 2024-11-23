@@ -1,6 +1,6 @@
 package com.aleksandr_kobelskiy.week12practice.rest;
 
-import com.aleksandr_kobelskiy.week12practice.model.User;
+import com.aleksandr_kobelskiy.week12practice.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserRestControllerV1 {
 
     @PostMapping
-    public User create(User user) {
-        return new User();
+    public UserEntity create(UserEntity user) {
+        return new UserEntity();
     }
 }

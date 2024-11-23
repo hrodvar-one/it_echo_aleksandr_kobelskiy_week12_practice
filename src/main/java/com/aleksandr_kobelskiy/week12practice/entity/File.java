@@ -1,4 +1,4 @@
-package com.aleksandr_kobelskiy.week12practice.model;
+package com.aleksandr_kobelskiy.week12practice.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,7 +8,7 @@ import lombok.Data;
 @Entity
 @Data
 @Table(name = "files")
-public class File extends BaseEntity{
+public class File {
 
     @Column(name = "name")
     private String name;

@@ -1,4 +1,4 @@
-package com.aleksandr_kobelskiy.week12practice.model;
+package com.aleksandr_kobelskiy.week12practice.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -9,11 +9,11 @@ import lombok.Data;
 @Entity
 @Data
 @Table(name = "events")
-public class Event extends BaseEntity {
+public class Event {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private UserEntity user;
 
     @ManyToOne
     @JoinColumn(name = "file_id")
