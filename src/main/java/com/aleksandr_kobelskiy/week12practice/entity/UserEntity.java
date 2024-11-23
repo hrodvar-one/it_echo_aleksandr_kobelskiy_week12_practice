@@ -2,6 +2,7 @@ package com.aleksandr_kobelskiy.week12practice.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
@@ -33,7 +34,8 @@ public class UserEntity {
 
     private LocalDateTime updatedAt;
 
-    private List<Event> events;
+//    @Transient
+//    private List<Event> events;
 
     @ToString.Include(name = "password")
     private String maskPassword() {

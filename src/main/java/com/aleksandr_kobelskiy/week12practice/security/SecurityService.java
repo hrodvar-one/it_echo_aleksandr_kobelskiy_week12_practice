@@ -1,5 +1,6 @@
 package com.aleksandr_kobelskiy.week12practice.security;
 
+import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.entity.UserEntity;
 import com.aleksandr_kobelskiy.week12practice.exception.AuthException;
 import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
@@ -68,7 +69,8 @@ public class SecurityService {
         return userService.getUserByUsername(username)
                 .flatMap(user -> {
 //                    if(!user.isEnabled()) {
-                    if(!user.getStatus().equals("ACTIVE")) {
+//                    if(!user.getStatus().equals("ACTIVE")) {
+                    if(user.getStatus() != Status.ACTIVE) {
 //                        return Mono.error(new RuntimeException("User is not enabled"));
                         return Mono.error(new AuthException("Account disabled", "AKOBELSKIY_USER_ACCOUNT_DISABLED"));
                     }
