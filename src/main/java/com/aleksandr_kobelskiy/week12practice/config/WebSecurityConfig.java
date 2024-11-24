@@ -29,33 +29,6 @@ public class WebSecurityConfig {
 
     private final String [] publicRoutes = {"/api/v1/auth/register", "/api/v1/auth/login"};
 
-//    @Bean
-//    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, AuthenticationManager authenticationManager) {
-//        return http
-//                .csrf().disable()
-//                .authorizeExchange()
-//                .pathMatchers(HttpMethod.OPTIONS)
-//                .permitAll()
-//                .pathMatchers(publicRoutes)
-//                .permitAll()
-//                .anyExchange()
-//                .authenticated()
-//                .and()
-//                .exceptionHandling()
-//                .authenticationEntryPoint((swe, e) -> {
-//                    log.error("In securityWebFilterChain - unauthorized error: {}", e.getMessage());
-//                    return Mono.fromRunnable(() -> swe.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED));
-//                })
-//                .accessDeniedHandler((swe, e) -> {
-//                    log.error("In securityWebFilterChain - access denied: {}", e.getMessage());
-//                    return Mono.fromRunnable(() -> swe.getResponse().setStatusCode(HttpStatus.FORBIDDEN));
-//
-//                })
-//                .and()
-//                .addFilterAt(bearerAuthenticationFilter(authenticationManager), SecurityWebFiltersOrder.AUTHENTICATION)
-//                .build();
-//    }
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, AuthenticationManager authenticationManager) {
         return http

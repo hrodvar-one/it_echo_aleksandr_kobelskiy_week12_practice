@@ -1,6 +1,6 @@
 package com.aleksandr_kobelskiy.week12practice.dto;
 
-import com.aleksandr_kobelskiy.week12practice.entity.Event;
+//import com.aleksandr_kobelskiy.week12practice.entity.Event;
 import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.entity.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;

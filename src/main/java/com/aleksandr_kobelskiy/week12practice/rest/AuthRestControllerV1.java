@@ -5,7 +5,6 @@ import com.aleksandr_kobelskiy.week12practice.dto.AuthResponseDto;
 import com.aleksandr_kobelskiy.week12practice.dto.UserDto;
 import com.aleksandr_kobelskiy.week12practice.entity.UserEntity;
 import com.aleksandr_kobelskiy.week12practice.mapper.UserMapper;
-import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
 import com.aleksandr_kobelskiy.week12practice.security.CustomPrincipal;
 import com.aleksandr_kobelskiy.week12practice.security.SecurityService;
 import com.aleksandr_kobelskiy.week12practice.service.UserService;

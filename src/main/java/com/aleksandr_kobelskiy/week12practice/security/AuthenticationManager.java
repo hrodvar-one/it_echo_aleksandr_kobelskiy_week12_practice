@@ -2,7 +2,6 @@ package com.aleksandr_kobelskiy.week12practice.security;
 
 import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.exception.UnauthorizedException;
-import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
 import com.aleksandr_kobelskiy.week12practice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
