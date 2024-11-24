@@ -1,6 +1,5 @@
 package com.aleksandr_kobelskiy.week12practice.dto;
 
-//import com.aleksandr_kobelskiy.week12practice.entity.Event;
 import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.entity.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -9,7 +8,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -33,6 +31,4 @@ public class UserDto {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
-
-//    private List<Event> events;
 }
