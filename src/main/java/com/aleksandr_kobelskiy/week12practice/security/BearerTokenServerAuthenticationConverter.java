@@ -16,7 +16,6 @@ public class BearerTokenServerAuthenticationConverter implements ServerAuthentic
     private static final String BEARER_PREFIX = "Bearer ";
     private static final Function<String, Mono<String>> getBearerValue = authValue -> Mono.justOrEmpty(authValue.substring(BEARER_PREFIX.length()));
 
-
     @Override
     public Mono<Authentication> convert(ServerWebExchange exchange) {
         return extractHeader(exchange)
