@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class FileService {
@@ -34,11 +32,11 @@ public class FileService {
                 });
     }
 
-    public Mono<FileEntity> getFileById(Long id) {
-        return fileRepository.findById(id);
+    public Flux<String> getFilesInPersonalFolder() {
+        return awsS3Repository.listFilesInPersonalFolder();
     }
 
-    public Flux<FileEntity> getAllFiles() {
-        return fileRepository.findAll();
+    public Flux<String> deleteFilesInPersonalFolder() {
+        return awsS3Repository.deleteAllFilesInPersonalFolder();
     }
 }

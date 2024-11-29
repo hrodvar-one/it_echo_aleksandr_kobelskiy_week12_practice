@@ -1,6 +1,5 @@
 package com.aleksandr_kobelskiy.week12practice.rest;
 
-import com.aleksandr_kobelskiy.week12practice.entity.FileEntity;
 import com.aleksandr_kobelskiy.week12practice.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,11 +19,10 @@ public class FileRestControllerV1 {
 
     private final FileService fileService;
 
-    @GetMapping("/locations")
-    public Flux<ResponseEntity<String>> getAllFileLocations() {
+    @GetMapping(value = "/locations", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<List<String>> getAllFileLocations() {
         return fileService.getAllFileLocationsFromDB()
-                .map(location -> ResponseEntity.ok(location))
-                .onErrorResume(e -> Flux.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)));
+                .collectList(); // Собираем Flux в список
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -34,13 +32,18 @@ public class FileRestControllerV1 {
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage())));
     }
 
-    @GetMapping
-    public Flux<FileEntity> getAllFiles() {
-        return fileService.getAllFiles();
+    @GetMapping(value = "/personal-folder", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<String> listFilesInPersonalFolder() {
+        return fileService.getFilesInPersonalFolder()
+                .switchIfEmpty(Flux.just("Директория пуста")); // Если Flux пустой, возвращаем сообщение
     }
 
-//    @PostMapping
-//    public FileEntity create(FileEntity file) {
-//        return new FileEntity();
-//    }
+    @DeleteMapping("/personal-folder")
+    public Flux<String> deleteFilesInPersonalFolder() {
+        return fileService.getFilesInPersonalFolder()
+                .switchIfEmpty(Flux.just("Директория пуста, нечего удалять")) // Если Flux пустой, вернуть сообщение
+                .flatMap(file -> file.equals("Директория пуста, нечего удалять")
+                        ? Flux.just(file) // Если папка пуста, вернуть сообщение
+                        : fileService.deleteFilesInPersonalFolder()); // Иначе продолжить удаление
+    }
 }

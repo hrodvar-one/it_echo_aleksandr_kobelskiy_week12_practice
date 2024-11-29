@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -27,6 +28,9 @@ public class AwsS3Repository {
 
     @Value("${aws.s3.personalFolderName}")
     private String personalFolderName;
+
+    @Value("${aws.s3.endpointOverride}")
+    private String endpointOverride;
 
     public Mono<String> uploadFile(FilePart filePart) {
         return ensureFolderExists(personalFolderName) // Убедимся, что папка существует
@@ -112,28 +116,56 @@ public class AwsS3Repository {
                                 if (!response.sdkHttpResponse().isSuccessful()) {
                                     throw new RuntimeException("Failed to upload file to S3: " + response.sdkHttpResponse().statusCode());
                                 }
-                                return "s3://" + bucketName + "/" + key; // Возвращаем URL-адрес файла
+//                                return "s3://" + bucketName + "/" + key; // Возвращаем URL-адрес файла
+                                return endpointOverride + "/" + bucketName + "/" + key; // Возвращаем URL-адрес файла
                             });
                 });
     }
 
-    public Mono<List<String>> listAllFileLocations() {
-        return Mono.fromFuture(
-                s3AsyncClient.listObjectsV2(
-                        ListObjectsV2Request.builder()
-                                .bucket(bucketName) // Используем бакет, заданный в настройках
-                                .build()
-                )
-        ).flatMap(response -> {
-            if (!response.sdkHttpResponse().isSuccessful()) {
-                return Mono.error(new RuntimeException("Failed to list objects in bucket: " + bucketName));
-            }
-            // Преобразуем объекты в список их ключей (путей)
-            List<String> locations = response.contents().stream()
-                    .map(S3Object::key)
-                    .map(key -> "s3://" + bucketName + "/" + key)
-                    .toList();
-            return Mono.just(locations);
-        });
+
+    public Flux<String> listFilesInPersonalFolder() {
+        ListObjectsV2Request request = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(personalFolderName + "/") // Указываем префикс для папки
+                .build();
+
+        CompletableFuture<List<String>> future = s3AsyncClient.listObjectsV2(request)
+                .thenApply(response -> response.contents().stream()
+                        .map(S3Object::key)
+                        .filter(key -> !key.endsWith("/"))
+                        .map(key -> endpointOverride + "/" + bucketName + "/" + key)
+                        .toList());
+
+        // Преобразуем CompletableFuture в Mono, а затем развернем List<String> в Flux<String>
+        return Mono.fromFuture(future) // Преобразуем CompletableFuture в Mono<List<String>>
+                .flatMapMany(Flux::fromIterable); // Разворачиваем List<String> в Flux<String>
+    }
+
+
+    public Flux<String> deleteAllFilesInPersonalFolder() {
+        ListObjectsV2Request request = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(personalFolderName + "/") // Указываем префикс для папки
+                .build();
+
+        CompletableFuture<List<String>> future = s3AsyncClient.listObjectsV2(request)
+                .thenApply(response -> response.contents().stream()
+                        .map(S3Object::key)
+                        .toList());
+
+        // Преобразуем CompletableFuture в Mono<List<String>>
+        return Mono.fromFuture(future)
+                .flatMapMany(Flux::fromIterable) // Преобразуем List<String> в Flux<String>
+                .flatMap(fileKey -> deleteFile(fileKey)
+                        .thenReturn(fileKey)); // Удаляем файл и возвращаем его имя
+    }
+
+
+    private Mono<Void> deleteFile(String fileKey) {
+        return Mono.fromFuture(s3AsyncClient.deleteObject(builder -> builder
+                        .bucket(bucketName)
+                        .key(fileKey)
+                        .build()))
+                .then(); // Преобразует Mono<DeleteObjectResponse> в Mono<Void>
     }
 }
