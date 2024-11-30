@@ -24,6 +24,15 @@ public class EventService {
                         .build());
     }
 
+    public Mono<Void> markEventAsDeleted(Long fileId) {
+        return eventRepository.findByFileId(fileId)
+                .flatMap(event -> {
+                    event.setStatus(Status.DELETED);
+                    return eventRepository.save(event);
+                })
+                .then();
+    }
+
     public Flux<EventEntity> getAllEvents() {
         return eventRepository.findAll();
     }

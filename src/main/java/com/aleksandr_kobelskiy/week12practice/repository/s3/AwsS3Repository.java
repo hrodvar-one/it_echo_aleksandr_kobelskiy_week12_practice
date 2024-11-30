@@ -156,16 +156,26 @@ public class AwsS3Repository {
         // Преобразуем CompletableFuture в Mono<List<String>>
         return Mono.fromFuture(future)
                 .flatMapMany(Flux::fromIterable) // Преобразуем List<String> в Flux<String>
-                .flatMap(fileKey -> deleteFile(fileKey)
+                .flatMap(fileKey -> deleteFileFromS3(fileKey)
                         .thenReturn(fileKey)); // Удаляем файл и возвращаем его имя
     }
 
 
-    private Mono<Void> deleteFile(String fileKey) {
+//    private Mono<Void> deleteFileFromS3(String fileKey) {
+//        return Mono.fromFuture(s3AsyncClient.deleteObject(builder -> builder
+//                        .bucket(bucketName)
+//                        .key(fileKey)
+//                        .build()))
+//                .then(); // Преобразует Mono<DeleteObjectResponse> в Mono<Void>
+//    }
+
+    public Mono<Void> deleteFileFromS3(String fileKey) {
         return Mono.fromFuture(s3AsyncClient.deleteObject(builder -> builder
                         .bucket(bucketName)
                         .key(fileKey)
                         .build()))
+                .doOnSuccess(response -> System.out.println("Successfully deleted file: " + fileKey))
+                .doOnError(error -> System.err.println("Error deleting file from S3: " + error.getMessage()))
                 .then(); // Преобразует Mono<DeleteObjectResponse> в Mono<Void>
     }
 }

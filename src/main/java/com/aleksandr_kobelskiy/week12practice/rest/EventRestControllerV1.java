@@ -25,4 +25,10 @@ public class EventRestControllerV1 {
         return eventService.logEvent(userId, fileId)
                 .map(ResponseEntity::ok);
     }
+
+    @DeleteMapping("/{fileId}")
+    public Mono<ResponseEntity<Void>> markEventAsDeleted(@PathVariable Long fileId) {
+        return eventService.markEventAsDeleted(fileId)
+                .then(Mono.just(ResponseEntity.noContent().build()));
+    }
 }

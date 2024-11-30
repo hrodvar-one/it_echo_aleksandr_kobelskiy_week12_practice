@@ -3,6 +3,6 @@ CREATE TABLE events (
     user_id INT NOT NULL,
     file_id INT NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
-    CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_events_file FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE,
+    CONSTRAINT fk_events_file FOREIGN KEY (file_id) REFERENCES files (id) ON UPDATE CASCADE
 )
