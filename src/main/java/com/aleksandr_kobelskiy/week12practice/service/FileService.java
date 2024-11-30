@@ -20,6 +20,7 @@ public class FileService {
     private final FileRepository fileRepository;
     private final EventService eventService;
     private final EventRepository eventRepository;
+    private final UserService userService;
 
     public Flux<String> getAllFileLocationsFromDB() {
         return fileRepository.findByStatus(Status.ACTIVE) // Получаем только записи со статусом ACTIVE
@@ -27,7 +28,7 @@ public class FileService {
     }
 
 
-    public Mono<String> uploadAndSaveFile(FilePart filePart, Long userId) {
+    public Mono<String> uploadAndSaveFile(FilePart filePart) {
         return awsS3Repository.uploadFile(filePart)
                 .flatMap(location -> {
                     FileEntity fileEntity = new FileEntity();
@@ -36,37 +37,38 @@ public class FileService {
 
                     return fileRepository.save(fileEntity)
                             .flatMap(savedFile ->
-                                    eventService.logEvent(userId, savedFile.getId())
+                                    eventService.logEvent(savedFile.getId(), Status.ACTIVE) // Передаём только fileId
                                             .thenReturn(location));
                 });
     }
 
 
     public Mono<Void> deleteFile(Long fileId) {
-        return fileRepository.findByIdAndStatus(fileId, Status.ACTIVE) // Ищем файл с указанным id и статусом ACTIVE
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("File with this id not found"))) // Возвращаем ошибку, если файл не найден
+        return fileRepository.findByIdAndStatus(fileId, Status.ACTIVE)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("File with this id not found")))
                 .flatMap(file -> {
-                    String fileKey = extractFileKey(file.getLocation()); // Извлекаем ключ из URL
-                    System.out.println("Extracted file key: " + fileKey); // Отладка
-                    return awsS3Repository.deleteFileFromS3(fileKey) // Удаляем файл с S3
-                            .then(fileRepository.save(file.toBuilder().status(Status.DELETED).build())) // Меняем статус на DELETED
+                    String fileKey = extractFileKey(file.getLocation());
+                    return awsS3Repository.deleteFileFromS3(fileKey)
+                            .then(fileRepository.save(file.toBuilder().status(Status.DELETED).build()))
                             .then(eventRepository.findByFileId(fileId).next()
-                                    .flatMap(existingEvent -> {
-                                        EventEntity newEvent = EventEntity.builder()
-                                                .userId(existingEvent.getUserId())
-                                                .fileId(fileId)
-                                                .status(Status.DELETED)
-                                                .build();
-                                        return eventRepository.save(newEvent);
-                                    })
-                                    .switchIfEmpty(Mono.defer(() -> {
-                                        EventEntity newEvent = EventEntity.builder()
-                                                .userId(1L) // Укажите корректного пользователя
-                                                .fileId(fileId)
-                                                .status(Status.DELETED)
-                                                .build();
-                                        return eventRepository.save(newEvent);
-                                    }))
+                                    .flatMap(existingEvent -> userService.getCurrentUser()
+                                            .flatMap(currentUser -> {
+                                                EventEntity newEvent = EventEntity.builder()
+                                                        .userId(currentUser.getId())
+                                                        .fileId(fileId)
+                                                        .status(Status.DELETED)
+                                                        .build();
+                                                return eventRepository.save(newEvent);
+                                            }))
+                                    .switchIfEmpty(userService.getCurrentUser()
+                                            .flatMap(currentUser -> {
+                                                EventEntity newEvent = EventEntity.builder()
+                                                        .userId(currentUser.getId())
+                                                        .fileId(fileId)
+                                                        .status(Status.DELETED)
+                                                        .build();
+                                                return eventRepository.save(newEvent);
+                                            }))
                                     .then());
                 });
     }

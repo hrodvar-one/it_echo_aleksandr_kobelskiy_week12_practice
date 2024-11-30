@@ -1,6 +1,7 @@
 package com.aleksandr_kobelskiy.week12practice.rest;
 
 import com.aleksandr_kobelskiy.week12practice.entity.EventEntity;
+import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +22,8 @@ public class EventRestControllerV1 {
     }
 
     @PostMapping
-    public Mono<ResponseEntity<EventEntity>> createEvent(@RequestParam Long userId, @RequestParam Long fileId) {
-        return eventService.logEvent(userId, fileId)
+    public Mono<ResponseEntity<EventEntity>> createEvent(@RequestParam Long fileId) {
+        return eventService.logEvent(fileId, Status.ACTIVE) // Передаём только fileId
                 .map(ResponseEntity::ok);
     }
 

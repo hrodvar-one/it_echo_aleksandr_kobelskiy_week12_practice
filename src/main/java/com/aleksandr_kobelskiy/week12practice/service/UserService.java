@@ -6,6 +6,9 @@ import com.aleksandr_kobelskiy.week12practice.entity.UserRole;
 import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -39,5 +42,14 @@ public class UserService {
 
     public Mono<UserEntity> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public Mono<UserEntity> getCurrentUser() {
+        // Предполагается, что Spring Security используется для извлечения текущего пользователя
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .filter(Authentication::isAuthenticated)
+                .map(Authentication::getName) // Получаем имя пользователя
+                .flatMap(userRepository::findByUsername); // Находим пользователя в базе данных
     }
 }

@@ -36,10 +36,8 @@ public class FileRestControllerV1 {
 
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Mono<ResponseEntity<String>> uploadFile(
-            @RequestPart("file") Mono<FilePart> file,
-            @RequestParam("userId") Long userId) {
-        return file.flatMap(filePart -> fileService.uploadAndSaveFile(filePart, userId))
+    public Mono<ResponseEntity<String>> uploadFile(@RequestPart("file") Mono<FilePart> file) {
+        return file.flatMap(filePart -> fileService.uploadAndSaveFile(filePart))
                 .map(location -> ResponseEntity.ok("File uploaded successfully: " + location))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage())));
     }
