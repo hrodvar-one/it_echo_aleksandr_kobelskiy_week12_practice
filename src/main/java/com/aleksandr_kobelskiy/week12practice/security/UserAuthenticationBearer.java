@@ -17,7 +17,8 @@ public class UserAuthenticationBearer {
         String role = claims.get("role", String.class);
         String username = claims.get("username", String.class);
 
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+//        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
         Long principalId = Long.parseLong(subject);
         CustomPrincipal principal = new CustomPrincipal(principalId, username);

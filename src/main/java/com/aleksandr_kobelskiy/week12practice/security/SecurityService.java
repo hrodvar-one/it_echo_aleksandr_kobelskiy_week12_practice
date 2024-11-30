@@ -32,7 +32,8 @@ public class SecurityService {
 
     private TokenDetails generateToken(UserEntity user) {
         Map<String, Object> claims = new HashMap<>() {{
-            put("role", user.getRole());
+//            put("role", user.getRole());
+            put("role", user.getRole().name());
             put("username", user.getUsername());
         }};
         return generateToken(claims, user.getId().toString());
