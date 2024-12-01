@@ -68,4 +68,16 @@ public class UserService {
     public Flux<UserEntity> getAllUsers() {
         return userRepository.findAll();
     }
+
+    public Mono<Boolean> markUserAsDeleted(Long id) {
+        return userRepository.findById(id)
+                .flatMap(user -> {
+                    if (user.getStatus().equals(Status.ACTIVE)) {
+                        user.setStatus(Status.DELETED);
+                        return userRepository.save(user).then(Mono.just(true));
+                    }
+                    return Mono.just(false); // Если статус уже DELETED или другой
+                })
+                .defaultIfEmpty(false);
+    }
 }

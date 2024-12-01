@@ -44,4 +44,13 @@ public class UserRestControllerV1 {
                 .map(user -> ResponseEntity.ok(user))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<Void>> deleteUserById(@PathVariable Long id) {
+        return userService.markUserAsDeleted(id)
+                .map(updated -> updated
+                        ? ResponseEntity.noContent().build()
+                        : ResponseEntity.notFound().build());
+    }
 }
