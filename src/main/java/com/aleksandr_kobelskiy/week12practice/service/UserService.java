@@ -52,4 +52,15 @@ public class UserService {
                 .map(Authentication::getName) // Получаем имя пользователя
                 .flatMap(userRepository::findByUsername); // Находим пользователя в базе данных
     }
+
+    public Mono<UserEntity> updateUser(Long id, String firstName, String lastName, String role) {
+        return userRepository.findById(id)
+                .flatMap(existingUser -> {
+                    existingUser.setFirstName(firstName);
+                    existingUser.setLastName(lastName);
+                    existingUser.setRole(UserRole.valueOf(role));
+                    return userRepository.updateUser(id, firstName, lastName, role)
+                            .thenReturn(existingUser);
+                });
+    }
 }
