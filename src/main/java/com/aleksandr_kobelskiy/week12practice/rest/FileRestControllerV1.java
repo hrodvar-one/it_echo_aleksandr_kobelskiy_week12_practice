@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,7 +50,7 @@ public class FileRestControllerV1 {
                 .switchIfEmpty(Flux.just("The directory is empty")); // Если Flux пустой, возвращаем сообщение
     }
 
-
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @DeleteMapping("/{fileId}")
     public Mono<ResponseEntity<String>> deleteFile(@PathVariable("fileId") Long fileId) {
         return fileService.deleteFile(fileId)
