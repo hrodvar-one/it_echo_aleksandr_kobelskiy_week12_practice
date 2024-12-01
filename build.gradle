@@ -57,7 +57,6 @@ dependencies {
 
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
 
-//    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-configuration-processor'
 
 //  Amazon AWS S3
@@ -71,7 +70,10 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation "io.projectreactor:reactor-test:$reactorTestVersion"
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:r2dbc'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
