@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
@@ -24,5 +26,14 @@ public class UserRestControllerV1 {
         return userService.updateUser(id, request.getFirstName(), request.getLastName(), String.valueOf(request.getRole()))
                 .map(updatedUser -> ResponseEntity.ok(updatedUser))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    @GetMapping
+    public Mono<ResponseEntity<List<UserEntity>>> getAllUsers() {
+        return userService.getAllUsers()
+                .collectList()
+                .map(users -> ResponseEntity.ok(users))
+                .defaultIfEmpty(ResponseEntity.noContent().build());
     }
 }
