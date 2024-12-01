@@ -36,4 +36,12 @@ public class UserRestControllerV1 {
                 .map(users -> ResponseEntity.ok(users))
                 .defaultIfEmpty(ResponseEntity.noContent().build());
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<UserEntity>> getUserById(@PathVariable Long id) {
+        return userService.getUserById(id)
+                .map(user -> ResponseEntity.ok(user))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
 }
