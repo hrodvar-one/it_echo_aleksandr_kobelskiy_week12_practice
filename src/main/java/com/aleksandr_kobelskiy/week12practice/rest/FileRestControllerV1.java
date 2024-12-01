@@ -20,6 +20,7 @@ public class FileRestControllerV1 {
 
     private final FileService fileService;
 
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @GetMapping(value = "/locations", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<List<String>> getAllFileLocations() {
         return fileService.getAllFileLocationsFromDB()
