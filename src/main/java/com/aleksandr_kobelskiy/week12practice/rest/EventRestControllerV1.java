@@ -5,6 +5,7 @@ import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,7 @@ public class EventRestControllerV1 {
 
     private final EventService eventService;
 
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @GetMapping
     public Flux<EventEntity> getAllEvents() {
         return eventService.getAllEvents();
