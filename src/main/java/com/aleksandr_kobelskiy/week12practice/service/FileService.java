@@ -84,6 +84,11 @@ public class FileService {
     }
 
 
+    public Mono<FileEntity> getFileById(Long fileId) {
+        return fileRepository.findById(fileId);
+    }
+
+
     private String extractFileKey(String fileUrl) {
         // Удаляем базовый URL (например, https://storage.yandexcloud.net/javateam1/)
         return fileUrl.replace("https://storage.yandexcloud.net/javateam1/", "");

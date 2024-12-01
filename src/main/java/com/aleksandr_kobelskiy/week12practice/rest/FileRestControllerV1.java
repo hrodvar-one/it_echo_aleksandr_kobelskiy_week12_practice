@@ -1,5 +1,6 @@
 package com.aleksandr_kobelskiy.week12practice.rest;
 
+import com.aleksandr_kobelskiy.week12practice.entity.Status;
 import com.aleksandr_kobelskiy.week12practice.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -72,5 +73,22 @@ public class FileRestControllerV1 {
                 .flatMap(file -> file.equals("The directory is empty, there is nothing to delete")
                         ? Flux.just(file) // Если папка пуста, вернуть сообщение
                         : fileService.deleteFilesInPersonalFolder()); // Иначе продолжить удаление
+    }
+
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    @GetMapping("/{fileId}")
+    public Mono<ResponseEntity<String>> getFileById(@PathVariable("fileId") Long fileId) {
+        return fileService.getFileById(fileId)
+                .flatMap(file -> {
+                    if (Status.ACTIVE.equals(file.getStatus())) {
+                        return Mono.just(ResponseEntity.ok(file.getLocation()));
+                    } else if (Status.DELETED.equals(file.getStatus())) {
+                        return Mono.just(ResponseEntity.status(HttpStatus.GONE).body("File has been deleted"));
+                    } else {
+                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Unknown file status: " + file.getStatus()));
+                    }
+                })
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).body("File not found"));
     }
 }
