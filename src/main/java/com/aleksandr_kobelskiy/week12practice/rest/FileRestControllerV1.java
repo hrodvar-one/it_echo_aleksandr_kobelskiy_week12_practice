@@ -91,4 +91,24 @@ public class FileRestControllerV1 {
                 })
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).body("File not found"));
     }
+
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    @PutMapping(value = "/{fileId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ResponseEntity<String>> updateFile(@PathVariable("fileId") Long fileId,
+                                                   @RequestPart("file") Mono<FilePart> file) {
+        return deleteFile(fileId) // Сначала вызываем метод deleteFile
+                .flatMap(deleteResponse -> {
+                    if (deleteResponse.getStatusCode().is2xxSuccessful()) {
+                        // Если файл успешно удалён, вызываем uploadFile
+                        return uploadFile(file)
+                                .map(uploadResponse -> ResponseEntity.ok("File successfully updated"));
+                    } else {
+                        // Если файл не удалён, возвращаем ошибку
+                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Failed to update file: could not delete existing file"));
+                    }
+                })
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("An error occurred while updating the file: " + e.getMessage())));
+    }
 }
