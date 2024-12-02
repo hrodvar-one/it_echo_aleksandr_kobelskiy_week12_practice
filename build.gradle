@@ -29,6 +29,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.session:spring-session-core'
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.security:spring-security-config'
 
 //  Реактивный драйвер работы с MySQL
     implementation "io.asyncer:r2dbc-mysql:$r2dbcMysqlVersion"
@@ -72,8 +73,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation "io.projectreactor:reactor-test:$reactorTestVersion"
+    testImplementation "org.testcontainers:mysql:$testcontainersMysqlVersion"
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:r2dbc'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
