@@ -28,7 +28,6 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @AutoConfigureWebTestClient
 @Import(MySqlTestcontainerConfig.class)
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-//@ActiveProfiles("test")
 public class itUserRestControllerV1Test {
 
     @Autowired
