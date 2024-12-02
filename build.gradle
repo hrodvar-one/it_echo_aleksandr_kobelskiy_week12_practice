@@ -31,6 +31,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.springframework.security:spring-security-config'
 
+    implementation 'software.amazon.awssdk:netty-nio-client:2.29.21' // Убедитесь, что версия актуальная
+
 //  Реактивный драйвер работы с MySQL
     implementation "io.asyncer:r2dbc-mysql:$r2dbcMysqlVersion"
 
@@ -77,6 +79,7 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:r2dbc'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation "org.testcontainers:localstack:$testcontainersLocalstackVersion"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
