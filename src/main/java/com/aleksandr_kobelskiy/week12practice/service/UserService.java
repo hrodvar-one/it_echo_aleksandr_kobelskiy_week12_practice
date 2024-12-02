@@ -6,11 +6,14 @@ import com.aleksandr_kobelskiy.week12practice.entity.UserRole;
 import com.aleksandr_kobelskiy.week12practice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,7 +37,9 @@ public class UserService {
                         .build()
         ).doOnSuccess(u -> {
             log.info("In registerUser - user: {} created", u);
-        });
+        })
+        .onErrorMap(DuplicateKeyException.class, ex ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists", ex));
     }
 
     public Mono<UserEntity> getUserById(Long id) {
