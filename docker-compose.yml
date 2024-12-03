@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+    ports:
+      - "4566:4566"
+#    command: >
+#      sh -c "
+#      until aws --endpoint-url=http://localhost:4566 s3 mb s3://test-bucket; do sleep 5; done;
+#      "
