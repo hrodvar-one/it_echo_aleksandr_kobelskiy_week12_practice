@@ -116,7 +116,6 @@ public class AwsS3Repository {
                                 if (!response.sdkHttpResponse().isSuccessful()) {
                                     throw new RuntimeException("Failed to upload file to S3: " + response.sdkHttpResponse().statusCode());
                                 }
-//                                return "s3://" + bucketName + "/" + key; // Возвращаем URL-адрес файла
                                 return endpointOverride + "/" + bucketName + "/" + key; // Возвращаем URL-адрес файла
                             });
                 });
@@ -160,14 +159,6 @@ public class AwsS3Repository {
                         .thenReturn(fileKey)); // Удаляем файл и возвращаем его имя
     }
 
-
-//    private Mono<Void> deleteFileFromS3(String fileKey) {
-//        return Mono.fromFuture(s3AsyncClient.deleteObject(builder -> builder
-//                        .bucket(bucketName)
-//                        .key(fileKey)
-//                        .build()))
-//                .then(); // Преобразует Mono<DeleteObjectResponse> в Mono<Void>
-//    }
 
     public Mono<Void> deleteFileFromS3(String fileKey) {
         return Mono.fromFuture(s3AsyncClient.deleteObject(builder -> builder

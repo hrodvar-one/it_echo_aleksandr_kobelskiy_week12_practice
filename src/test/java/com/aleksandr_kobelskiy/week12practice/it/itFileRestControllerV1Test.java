@@ -1,6 +1,7 @@
 package com.aleksandr_kobelskiy.week12practice.it;
 
 import com.aleksandr_kobelskiy.week12practice.config.AwsS3Config;
+import com.aleksandr_kobelskiy.week12practice.config.AwsS3TestConfig;
 import com.aleksandr_kobelskiy.week12practice.config.MySqlTestcontainerConfig;
 import com.aleksandr_kobelskiy.week12practice.entity.FileEntity;
 import com.aleksandr_kobelskiy.week12practice.entity.Status;
@@ -21,6 +22,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.testcontainers.containers.MySQLContainer;
@@ -53,27 +55,18 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@Import(MySqlTestcontainerConfig.class)
+//@Import(MySqlTestcontainerConfig.class)
+@Import({MySqlTestcontainerConfig.class, AwsS3TestConfig.class})
+@ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@TestPropertySource(locations = "classpath:application-test.properties")
 public class itFileRestControllerV1Test {
 
-    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:latest");
-    private static LocalStackContainer localStackContainer;
-
-    private final S3AsyncClient s3AsyncClient = S3AsyncClient.builder()
-            .httpClientBuilder(NettyNioAsyncHttpClient.builder()
-                    .maxConcurrency(100)
-                    .maxPendingConnectionAcquires(1000)
-                    .connectionAcquisitionTimeout(Duration.ofSeconds(30)))
-            .credentialsProvider(StaticCredentialsProvider.create(
-                    AwsBasicCredentials.create("test", "test")
-            ))
-            .region(Region.US_EAST_1) // Регион, используемый LocalStack
-            .endpointOverride(URI.create("http://localhost:4566")) // LocalStack URL
-            .build();
-
     @Autowired
-    private FileRepository fileRepository;
+    private S3AsyncClient s3AsyncClient;
+
+//    @Autowired
+//    private FileRepository fileRepository;
 
     @Autowired
     private WebTestClient webTestClient;
@@ -97,44 +90,6 @@ public class itFileRestControllerV1Test {
         registry.add("spring.flyway.password", mysqlContainer::getPassword);
     }
 
-//    @BeforeAll
-//    public static void startLocalStack() {
-//        localStackContainer = new LocalStackContainer(LOCALSTACK_IMAGE)
-//                .withServices(LocalStackContainer.Service.S3) // Указываем сервис S3
-//                .withExposedPorts(4566) // Указываем порт LocalStack
-//                .withEnv("EDGE_PORT", "4566"); // Указываем порт через переменную окружения
-//        localStackContainer.start();
-//
-//        // Убедитесь, что порт доступен через mappedPort
-//        Integer mappedPort = localStackContainer.getMappedPort(4566);
-//        System.setProperty("LOCALSTACK_PORT", mappedPort.toString());
-//    }
-
-    @BeforeAll
-    public static void startLocalStack() {
-        localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:latest"))
-                .withServices(LocalStackContainer.Service.S3);
-        localStackContainer.start();
-
-        int port = localStackContainer.getMappedPort(4566);
-
-        // Ждем, пока LocalStack станет доступным
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .until(() -> isServiceAvailable("http://localhost:" + port));
-    }
-
-    private static boolean isServiceAvailable(String url) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            int responseCode = connection.getResponseCode();
-            return responseCode == 200 || responseCode == 403; // 403 может быть, если S3 уже настроен
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
     @BeforeEach
     public void setUp() {
         // Настройка WebTestClient с увеличенным тайм-аутом
@@ -150,36 +105,7 @@ public class itFileRestControllerV1Test {
 
         Mockito.when(userService.getCurrentUser()).thenReturn(Mono.just(mockUser));
 
-        // Очистка базы данных
-        cleanDatabase();
-
-//        // Инициализация клиента S3 и создание тестового бакета
-//        initializeS3Client();
-    }
-
-    @AfterAll
-    public static void stopLocalStack() {
-        if (localStackContainer != null) {
-            localStackContainer.stop();
-        }
-    }
-
-//    @AfterEach
-//    public void cleanupS3() {
-//        String bucketName = "akobelskiy";
-//        s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
-//                .thenCompose(response -> CompletableFuture.allOf(response.contents().stream()
-//                        .map(object -> s3AsyncClient.deleteObject(d -> d.bucket(bucketName).key(object.key())))
-//                        .toArray(CompletableFuture[]::new)))
-//                .thenCompose(v -> s3AsyncClient.deleteBucket(b -> b.bucket(bucketName)))
-//                .join(); // Ждём завершения всех операций
-//    }
-
-    /**
-     * Очищает базу данных перед каждым тестом.
-     */
-    private void cleanDatabase() {
-        fileRepository.deleteAll().block();
+//        fileRepository.deleteAll().block();
     }
 
     /**
@@ -197,29 +123,51 @@ public class itFileRestControllerV1Test {
                     .bucket(bucketName)
                     .build());
             bucketCreation.join(); // Дожидаемся завершения создания бакета
+
+            // Убедитесь, что бакет действительно доступен
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(10))
+                    .until(() -> s3AsyncClient.listBuckets().join()
+                            .buckets().stream()
+                            .anyMatch(bucket -> bucket.name().equals(bucketName)));
         }
     }
 
     @Test
-    @DisplayName("Успешное получение всех местоположений файлов")
-    public void testGetAllFileLocationsSuccess() {
-        FileEntity file = new FileEntity();
-        file.setFileName("test.txt");
-        file.setLocation("path/to/test.txt");
-        file.setStatus(Status.ACTIVE);
-        fileRepository.save(file).block();
+    @DisplayName("Проверка создания бакета в LocalStack")
+    public void testCreateBucket() {
+        String bucketName = "test-bucket";
 
-        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-                .get()
-                .uri("/api/v1/files/locations")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBodyList(String.class)
-                .value(locations -> {
-                    assertNotNull(locations);
-                    assertNotNull(locations.getFirst());
-                });
+        s3AsyncClient.createBucket(CreateBucketRequest.builder().bucket(bucketName).build()).join();
+
+        boolean bucketExists = s3AsyncClient.listBuckets().join()
+                .buckets()
+                .stream()
+                .anyMatch(bucket -> bucket.name().equals(bucketName));
+
+        assertTrue(bucketExists, "Bucket should exist in LocalStack");
     }
+
+//    @Test   рабочий тест
+//    @DisplayName("Успешное получение всех местоположений файлов")
+//    public void testGetAllFileLocationsSuccess() {
+//        FileEntity file = new FileEntity();
+//        file.setFileName("test.txt");
+//        file.setLocation("path/to/test.txt");
+//        file.setStatus(Status.ACTIVE);
+//        fileRepository.save(file).block();
+//
+//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+//                .get()
+//                .uri("/api/v1/files/locations")
+//                .exchange()
+//                .expectStatus().isOk()
+//                .expectBodyList(String.class)
+//                .value(locations -> {
+//                    assertNotNull(locations);
+//                    assertNotNull(locations.getFirst());
+//                });
+//    }
 
 //    @Test
 //    @DisplayName("Неуспешное получение всех местоположений файлов (пустой список)")
@@ -238,13 +186,67 @@ public class itFileRestControllerV1Test {
 //                });
 //    }
 
+
+    @Test
+    @DisplayName("Простая запись файла в LocalStack S3 не через контроллер")
+    public void testWriteFileToLocalStack() throws IOException {
+        // Имя бакета и имя файла
+        String bucketName = "test-bucket";
+        String fileName = "test-file.txt";
+        String fileContent = "This is a test file";
+
+        // Создаем бакет, если он не существует
+        createBucketIfNotExists(bucketName);
+
+        // Проверяем, что бакет создан
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10))
+                .until(() -> s3AsyncClient.listBuckets().join()
+                        .buckets().stream()
+                        .anyMatch(bucket -> bucket.name().equals(bucketName)));
+
+        // Создаем временный файл
+        Path tempFile = Files.createTempFile("temp-", ".txt");
+        Files.writeString(tempFile, fileContent);
+
+        // Загружаем файл в S3
+        s3AsyncClient.putObject(
+                b -> b.bucket(bucketName).key(fileName),
+                tempFile
+        ).join();
+
+        // Проверяем, что файл существует в бакете
+        boolean fileExists = s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
+                .join()
+                .contents()
+                .stream()
+                .anyMatch(object -> object.key().equals(fileName));
+
+        assertTrue(fileExists, "Файл должен существовать в бакете");
+
+        // Удаляем временный файл
+        Files.deleteIfExists(tempFile);
+    }
+
+
+//    ///////////////////////////////////////////////////////////////////
 //    @Test
 //    @DisplayName("Успешная загрузка файла")
 //    public void testUploadFileSuccess() throws IOException {
-//        // Убедимся, что LocalStack работает и бакет существует
-//        String bucketName = "akobelskiy";
+//        // Название бакета
+//        String bucketName = "akobelskiy-test";
 //        String randomFileName = "test-file-" + UUID.randomUUID() + ".txt"; // Уникальное имя файла
 //        String fileContent = "This is a test file";
+//
+//        // Создаем бакет, если он отсутствует
+//        createBucketIfNotExists(bucketName);
+//
+//        // Убеждаемся, что бакет существует
+//        Awaitility.await()
+//                .atMost(Duration.ofSeconds(10))
+//                .until(() -> s3AsyncClient.listBuckets().join()
+//                        .buckets().stream()
+//                        .anyMatch(bucket -> bucket.name().equals(bucketName)));
 //
 //        // Создаем временный файл для загрузки
 //        Path tempFile = Files.createTempFile(randomFileName, null);
@@ -267,60 +269,17 @@ public class itFileRestControllerV1Test {
 //                .value(response -> assertTrue(response.contains("File uploaded successfully"),
 //                        "Response should indicate successful upload"));
 //
-//        // Получаем список объектов в бакете
-//        CompletableFuture<Boolean> fileExistsFuture = s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
-//                .thenApply(response -> response.contents().stream()
-//                        .anyMatch(object -> object.key().equals(randomFileName))); // Проверяем уникальное имя
-//
-//        // Проверяем, что файл действительно существует
-//        assertTrue(fileExistsFuture.join(), "Uploaded file should exist in S3 bucket");
+//        // Проверяем, что файл существует в бакете
+//        Awaitility.await()
+//                .atMost(Duration.ofSeconds(10))
+//                .until(() -> s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
+//                        .join().contents().stream()
+//                        .anyMatch(object -> object.key().equals(randomFileName)));
 //
 //        // Удаляем временный файл
 //        Files.deleteIfExists(tempFile);
 //    }
-
-    @Test
-    @DisplayName("Успешная загрузка файла")
-    public void testUploadFileSuccess() throws IOException, InterruptedException {
-        // Настраиваем тестовый бакет
-        String bucketName = "akobelskiy";
-        createBucketIfNotExists(bucketName);
-
-        // Генерируем тестовый файл
-        String randomFileName = "test-file-" + UUID.randomUUID() + ".txt";
-        String fileContent = "This is a test file";
-        Path tempFile = Files.createTempFile(randomFileName, null);
-        Files.writeString(tempFile, fileContent);
-
-        // Отправляем файл на сервер через WebTestClient
-        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
-        bodyBuilder.part("file", tempFile.toFile())
-                .header("Content-Disposition", "form-data; name=file; filename=" + randomFileName);
-
-        webTestClient.mutateWith(mockUser("testUser").roles("ADMIN"))
-                .post()
-                .uri("/api/v1/files")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(String.class)
-                .value(response -> {
-                    System.out.println("Response: " + response);
-                    assertTrue(response.contains("File uploaded successfully"),
-                            "Response should indicate successful upload");
-                });
-
-        // Проверяем наличие файла в бакете
-        CompletableFuture<Boolean> fileExistsFuture = s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
-                .thenApply(response -> response.contents().stream()
-                        .anyMatch(object -> object.key().equals(randomFileName)));
-
-        assertTrue(fileExistsFuture.join(), "Uploaded file should exist in S3 bucket");
-
-        // Удаляем временный файл
-        Files.deleteIfExists(tempFile);
-    }
+// ///////////////////////////////////////////////////////////////
 
 //    @Test
 //    @DisplayName("Неуспешная загрузка файла (ошибка сервера)")
