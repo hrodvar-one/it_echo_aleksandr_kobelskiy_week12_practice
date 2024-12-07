@@ -1,6 +1,5 @@
 package com.aleksandr_kobelskiy.week12practice.it;
 
-import com.aleksandr_kobelskiy.week12practice.config.AwsS3Config;
 import com.aleksandr_kobelskiy.week12practice.config.AwsS3TestConfig;
 import com.aleksandr_kobelskiy.week12practice.config.MySqlTestcontainerConfig;
 import com.aleksandr_kobelskiy.week12practice.entity.FileEntity;
@@ -15,7 +14,6 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.mock.web.MockMultipartFile;
@@ -26,28 +24,17 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
-import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.CreateBucketResponse;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,7 +42,6 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-//@Import(MySqlTestcontainerConfig.class)
 @Import({MySqlTestcontainerConfig.class, AwsS3TestConfig.class})
 @ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -166,6 +152,26 @@ public class itFileRestControllerV1Test {
                 .value(locations -> {
                     assertNotNull(locations);
                     assertNotNull(locations.getFirst());
+                });
+    }
+
+    @Test
+    @DisplayName("Неуспешное получение всех местоположений файлов (пустой список)")
+    public void testGetAllFileLocationsEmpty() {
+        // Выполняем запрос
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .get()
+                .uri("/api/v1/files/locations")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(List.class)
+                .consumeWith(response -> {
+                    List<String> locations = response.getResponseBody();
+                    assertNotNull(locations, "Ответ не должен быть null");
+                    assertEquals(1, locations.size(), "Список должен содержать одно сообщение");
+                    assertTrue(locations.contains("File location links not found"),
+                            "Ответ должен содержать сообщение 'File location links not found'");
                 });
     }
 
