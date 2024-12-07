@@ -377,4 +377,18 @@ public class itFileRestControllerV1Test {
         // Удаляем временный файл
         Files.deleteIfExists(tempFile);
     }
+
+    @Test
+    @DisplayName("Неуспешное обновление файла (ошибка при удалении)")
+    public void testUpdateFileDeleteError() {
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .put()
+                .uri("/api/v1/files/999")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(String.class)
+                .value(response -> Assertions.assertTrue(response.contains("Failed to update file: could not delete existing file"),
+                        "Ответ должен содержать сообщение 'Failed to update file: could not delete existing file'"));
+    }
 }
