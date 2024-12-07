@@ -336,4 +336,45 @@ public class itFileRestControllerV1Test {
                 .value(body -> Assertions.assertTrue(body.contains("File with this id not found"),
                         "Ответ должен содержать сообщение 'File with this id not found'"));
     }
+
+    @Test
+    @DisplayName("Успешное обновление файла")
+    public void testUpdateFileSuccess() throws IOException {
+        // Создание файла в базе данных
+        FileEntity file = new FileEntity();
+        file.setFileName("test.txt");
+        file.setLocation("path/to/test.txt");
+        file.setStatus(Status.ACTIVE);
+        file = fileRepository.save(file).block();
+
+        // Создаем mock файл для загрузки
+        String newFileName = "new-test.txt";
+        Path tempFile = Files.createTempFile(newFileName, ".txt");
+        Files.writeString(tempFile, "Updated content for the file");
+
+        MockMultipartFile mockMultipartFile = new MockMultipartFile(
+                "file",
+                newFileName,
+                MediaType.TEXT_PLAIN_VALUE,
+                Files.readAllBytes(tempFile)
+        );
+
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("file", mockMultipartFile.getResource());
+
+        // Выполняем запрос на обновление файла
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .put()
+                .uri("/api/v1/files/" + file.getId())
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .value(body -> assertTrue(body.contains("File successfully updated"),
+                        "Ответ должен содержать сообщение 'File successfully updated'"));
+
+        // Удаляем временный файл
+        Files.deleteIfExists(tempFile);
+    }
 }
