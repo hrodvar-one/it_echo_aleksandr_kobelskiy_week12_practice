@@ -274,4 +274,22 @@ public class itFileRestControllerV1Test {
                             "Ответ должен содержать сообщение 'No multipart boundary found in Content-Type'");
                 });
     }
+
+    @Test
+    @DisplayName("Успешное получение файла по ID")
+    public void testGetFileByIdSuccess() {
+        FileEntity file = new FileEntity();
+        file.setFileName("test.txt");
+        file.setLocation("path/to/test.txt");
+        file.setStatus(Status.ACTIVE);
+        file = fileRepository.save(file).block();
+
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .get()
+                .uri("/api/v1/files/" + file.getId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .value(body -> assertEquals("path/to/test.txt", body, "Ответ должен содержать правильное расположение файла"));
+    }
 }
