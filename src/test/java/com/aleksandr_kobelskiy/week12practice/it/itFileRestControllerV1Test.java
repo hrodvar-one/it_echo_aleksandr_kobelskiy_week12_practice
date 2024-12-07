@@ -65,8 +65,8 @@ public class itFileRestControllerV1Test {
     @Autowired
     private S3AsyncClient s3AsyncClient;
 
-//    @Autowired
-//    private FileRepository fileRepository;
+    @Autowired
+    private FileRepository fileRepository;
 
     @Autowired
     private WebTestClient webTestClient;
@@ -146,6 +146,27 @@ public class itFileRestControllerV1Test {
                 .anyMatch(bucket -> bucket.name().equals(bucketName));
 
         assertTrue(bucketExists, "Bucket should exist in LocalStack");
+    }
+
+    @Test
+    @DisplayName("Успешное получение всех местоположений файлов")
+    public void testGetAllFileLocationsSuccess() {
+        FileEntity file = new FileEntity();
+        file.setFileName("test.txt");
+        file.setLocation("path/to/test.txt");
+        file.setStatus(Status.ACTIVE);
+        fileRepository.save(file).block();
+
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .get()
+                .uri("/api/v1/files/locations")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(String.class)
+                .value(locations -> {
+                    assertNotNull(locations);
+                    assertNotNull(locations.getFirst());
+                });
     }
 
     @Test
