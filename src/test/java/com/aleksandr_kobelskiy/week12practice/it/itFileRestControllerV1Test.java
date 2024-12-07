@@ -91,7 +91,21 @@ public class itFileRestControllerV1Test {
 
         Mockito.when(userService.getCurrentUser()).thenReturn(Mono.just(mockUser));
 
+        // Убедитесь, что бакет существует
+        createBucketIfNotExists("test-bucket");
+
+        // Очистка бакета от файлов
+        clearBucket("test-bucket");
+
 //        fileRepository.deleteAll().block();
+    }
+
+    private void clearBucket(String bucketName) {
+        s3AsyncClient.listObjectsV2(request -> request.bucket(bucketName))
+                .join()
+                .contents()
+                .forEach(object -> s3AsyncClient.deleteObject(deleteRequest -> deleteRequest.bucket(bucketName).key(object.key()))
+                        .join());
     }
 
     /**
@@ -241,5 +255,23 @@ public class itFileRestControllerV1Test {
 
         // Удаляем временный файл
         Files.deleteIfExists(tempFile);
+    }
+
+    @Test
+    @DisplayName("Неуспешная загрузка файла на Localstack (ошибка сервера)")
+    public void testUploadFileServerError() {
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .post()
+                .uri("/api/v1/files")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(String.class)
+                .consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body, "Ответ не должен быть null");
+                    assertTrue(body.contains("No multipart boundary found in Content-Type"),
+                            "Ответ должен содержать сообщение 'No multipart boundary found in Content-Type'");
+                });
     }
 }
