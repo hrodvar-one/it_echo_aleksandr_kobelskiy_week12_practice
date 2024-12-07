@@ -323,4 +323,17 @@ public class itFileRestControllerV1Test {
                 .value(body -> assertTrue(body.contains("File successfully deleted"),
                         "Ответ должен содержать сообщение 'File successfully deleted'"));
     }
+
+    @Test
+    @DisplayName("Неуспешное удаление файла (файл не найден)")
+    public void testDeleteFileNotFound() {
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .delete()
+                .uri("/api/v1/files/999")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody(String.class)
+                .value(body -> Assertions.assertTrue(body.contains("File with this id not found"),
+                        "Ответ должен содержать сообщение 'File with this id not found'"));
+    }
 }
