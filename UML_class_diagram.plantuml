@@ -1,0 +1,81 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+class ApiException
+class AuthException
+class AuthRequestDto
+class AuthResponseDto
+class AuthRestControllerV1
+class AuthenticationManager
+class AwsS3Config
+class AwsS3Repository
+class BearerTokenServerAuthenticationConverter
+class CustomPrincipal
+class ErrorResponse
+class EventEntity
+interface EventRepository << interface >>
+class EventRestControllerV1
+class EventService
+class FileEntity
+interface FileRepository << interface >>
+class FileRestControllerV1
+class FileService
+class FlywayMigrationConfig
+class GlobalExceptionHandler
+class ItEchoAleksandrKobelskiyWeek12PracticeApplication
+class JwtHandler
+class PBFDK2Encoder
+class SecurityService
+enum Status << enumeration >>
+class TokenDetails
+class UnauthorizedException
+class UserAuthenticationBearer
+class UserDto
+class UserEntity
+interface UserMapper << interface >>
+interface UserRepository << interface >>
+class UserRestControllerV1
+enum UserRole << enumeration >>
+class UserService
+class UserUpdateRequestDto
+class WebSecurityConfig
+
+AuthException                                      -[#000082,plain]-^  ApiException                                      
+AuthRestControllerV1                              "1" *-[#595959,plain]-> "securityService\n1" SecurityService                                   
+AuthRestControllerV1                              "1" *-[#595959,plain]-> "userMapper\n1" UserMapper                                        
+AuthRestControllerV1                              "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+AuthenticationManager                              -[#595959,dashed]->  UnauthorizedException                             : "«create»"
+AuthenticationManager                             "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+BearerTokenServerAuthenticationConverter          "1" *-[#595959,plain]-> "jwtHandler\n1" JwtHandler                                        
+EventEntity                                       "1" *-[#595959,plain]-> "status\n1" Status                                            
+EventRestControllerV1                             "1" *-[#595959,plain]-> "eventService\n1" EventService                                      
+EventService                                      "1" *-[#595959,plain]-> "eventRepository\n1" EventRepository                                   
+EventService                                      "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+FileEntity                                        "1" *-[#595959,plain]-> "status\n1" Status                                            
+FileRestControllerV1                              "1" *-[#595959,plain]-> "fileService\n1" FileService                                       
+FileService                                       "1" *-[#595959,plain]-> "awsS3Repository\n1" AwsS3Repository                                   
+FileService                                       "1" *-[#595959,plain]-> "eventRepository\n1" EventRepository                                   
+FileService                                       "1" *-[#595959,plain]-> "eventService\n1" EventService                                      
+FileService                                        -[#595959,dashed]->  FileEntity                                        : "«create»"
+FileService                                       "1" *-[#595959,plain]-> "fileRepository\n1" FileRepository                                    
+FileService                                       "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+GlobalExceptionHandler                             -[#595959,dashed]->  ErrorResponse                                     : "«create»"
+JwtHandler                                         -[#595959,dashed]->  UnauthorizedException                             : "«create»"
+SecurityService                                    -[#595959,dashed]->  AuthException                                     : "«create»"
+SecurityService                                   "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+UnauthorizedException                              -[#000082,plain]-^  ApiException                                      
+UserAuthenticationBearer                           -[#595959,dashed]->  CustomPrincipal                                   : "«create»"
+UserDto                                           "1" *-[#595959,plain]-> "status\n1" Status                                            
+UserDto                                           "1" *-[#595959,plain]-> "role\n1" UserRole                                          
+UserEntity                                        "1" *-[#595959,plain]-> "events\n*" EventEntity                                       
+UserEntity                                        "1" *-[#595959,plain]-> "status\n1" Status                                            
+UserEntity                                        "1" *-[#595959,plain]-> "role\n1" UserRole                                          
+UserRestControllerV1                              "1" *-[#595959,plain]-> "userService\n1" UserService                                       
+UserService                                       "1" *-[#595959,plain]-> "userRepository\n1" UserRepository                                    
+UserUpdateRequestDto                              "1" *-[#595959,plain]-> "role\n1" UserRole                                          
+WebSecurityConfig                                  -[#595959,dashed]->  BearerTokenServerAuthenticationConverter          : "«create»"
+WebSecurityConfig                                  -[#595959,dashed]->  JwtHandler                                        : "«create»"
+@enduml

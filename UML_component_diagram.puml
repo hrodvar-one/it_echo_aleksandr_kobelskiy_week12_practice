@@ -1,0 +1,74 @@
+@startuml UML_component_diagram
+skinparam componentStyle rectangle
+
+package "Entity Layer" {
+  [EventEntity] <<entity>>
+  [FileEntity] <<entity>>
+  [UserEntity] <<entity>>
+}
+
+package "DTO Layer" {
+  [UserDTO] <<dto>>
+  [AuthRequestDto] <<dto>>
+  [AuthResponseDto] <<dto>>
+}
+
+package "POSTMAN" {
+  [Postman] <<view>>
+}
+
+package "REST_Controller Layer" {
+  [AuthRestControllerV1] <<controller>>
+  [EventRestControllerV1] <<controller>>
+  [FileRestControllerV1] <<controller>>
+  [UserRestControllerV1] <<controller>>
+}
+
+package "Service Layer" {
+  [SecurityService] <<service>>
+  [EventService] <<service>>
+  [FileService] <<service>>
+  [UserService] <<service>>
+}
+
+package "Repository Layer" {
+  [EventRepository] <<repository>>
+  [FileRepository] <<repository>>
+  [UserRepository] <<repository>>
+  [AwsS3Repository] <<repository>>
+}
+
+[Postman] --> [AuthRestControllerV1]
+[Postman] --> [EventRestControllerV1]
+[Postman] --> [UserRestControllerV1]
+[Postman] --> [FileRestControllerV1]
+
+[EventRestControllerV1] --> [AuthRestControllerV1]
+[FileRestControllerV1] --> [AuthRestControllerV1]
+[UserRestControllerV1] --> [AuthRestControllerV1]
+
+[SecurityService] --> [UserService]
+[EventService] --> [EventRepository]
+[EventService] --> [UserService]
+[UserService] --> [UserRepository]
+[FileService] --> [AwsS3Repository]
+[FileService] --> [FileRepository]
+[FileService] --> [EventService]
+[FileService] --> [EventRepository]
+[FileService] --> [UserService]
+
+[EventRestControllerV1] --> [EventService]
+[FileRestControllerV1] --> [FileService]
+[UserRestControllerV1] --> [UserDTO]
+[UserRestControllerV1] --> [UserService]
+[AuthRestControllerV1] --> [SecurityService]
+[AuthRestControllerV1] --> [UserService]
+[AuthRestControllerV1] --> [AuthRequestDto]
+[AuthRestControllerV1] --> [AuthResponseDto]
+
+[UserRepository] --> [UserEntity]
+[FileRepository] --> [FileEntity]
+[EventRepository] --> [EventEntity]
+[AwsS3Repository] --> [FileEntity]
+
+@enduml

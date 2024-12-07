@@ -1,0 +1,20 @@
+@startuml UML_sequence_diagram
+
+actor Postman
+Postman -> REST_Controller: GET, POST, PUT, DELETE запрос \nк REST API контроллеру
+REST_Controller -> Service: обращение к методам сервиса
+Service -> Repository: обращение к методам репозитория
+
+alt Используется MySQL
+    Repository -> MySQL_DB: запрос данных из базы данных
+    Repository <-- MySQL_DB: получение данных из базы данных
+else Используется Yandex_S3
+    Repository -> Yandex_S3: загрузка файла в хранилище
+    Repository <-- Yandex_S3: скачивание файла из хранилища
+end
+
+Service <-- Repository: передача данных в сервис
+REST_Controller <-- Service: передача данных \nв REST контроллер
+Postman <-- REST_Controller: вывод результатов запроса \nв формате JSON
+
+@enduml
