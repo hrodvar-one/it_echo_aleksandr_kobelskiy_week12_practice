@@ -1,15 +1,44 @@
-version: '3.8'
-
+version: "3.8"
 services:
-  localstack:
-    image: localstack/localstack:latest
-    container_name: localstack
-    environment:
-      - SERVICES=s3
-      - DEBUG=1
+  app:
+    build: .
+    container_name: week12practice_app
     ports:
-      - "4566:4566"
-#    command: >
-#      sh -c "
-#      until aws --endpoint-url=http://localhost:4566 s3 mb s3://test-bucket; do sleep 5; done;
-#      "
+#      - "8080:8080"
+      - "8787:8787"
+    environment:
+      # Настройки для реактивного драйвера R2DBC
+      SPRING_R2DBC_URL: r2dbc:mysql://db:3306/week12practice
+      SPRING_R2DBC_USERNAME: root
+      SPRING_R2DBC_PASSWORD: root
+
+      # Настройки для Flyway с использованием JDBC
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/week12practice?reconnect=true&connectTimeout=30000
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      - db
+    networks:
+      - app_network
+    command: ["/wait-for-it.sh", "db", "--", "java", "-jar", "build/libs/week12practice-1.0.0.jar"]
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  db:
+    image: mysql:8.0
+    container_name: week12practice_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: week12practice
+    ports:
+      - "3307:3306"
+    networks:
+      - app_network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+networks:
+  app_network:
+    driver: bridge
