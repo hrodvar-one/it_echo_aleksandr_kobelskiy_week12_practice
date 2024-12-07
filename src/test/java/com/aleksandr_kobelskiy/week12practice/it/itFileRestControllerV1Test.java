@@ -148,241 +148,71 @@ public class itFileRestControllerV1Test {
         assertTrue(bucketExists, "Bucket should exist in LocalStack");
     }
 
-//    @Test   рабочий тест
-//    @DisplayName("Успешное получение всех местоположений файлов")
-//    public void testGetAllFileLocationsSuccess() {
-//        FileEntity file = new FileEntity();
-//        file.setFileName("test.txt");
-//        file.setLocation("path/to/test.txt");
-//        file.setStatus(Status.ACTIVE);
-//        fileRepository.save(file).block();
-//
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .get()
-//                .uri("/api/v1/files/locations")
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBodyList(String.class)
-//                .value(locations -> {
-//                    assertNotNull(locations);
-//                    assertNotNull(locations.getFirst());
-//                });
-//    }
-
-//    @Test
-//    @DisplayName("Неуспешное получение всех местоположений файлов (пустой список)")
-//    public void testGetAllFileLocationsEmpty() {
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .get()
-//                .uri("/api/v1/files/locations")
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBodyList(String.class)
-//                .value(locations -> {
-//                    assertNotNull(locations, "Список местоположений не должен быть null");
-//                    assertEquals(List.of("File location links not found"),
-//                            List.copyOf(locations),
-//                            "Ответ должен быть списком с единственным элементом 'File location links not found'");
-//                });
-//    }
-
-
     @Test
-    @DisplayName("Простая запись файла в LocalStack S3 не через контроллер")
-    public void testWriteFileToLocalStack() throws IOException {
-        // Имя бакета и имя файла
+    @DisplayName("Проверка загрузки файла через LocalStack")
+    public void testUploadFile() throws IOException {
+        // Имя бакета и файл для загрузки
         String bucketName = "test-bucket";
         String fileName = "test-file.txt";
-        String fileContent = "This is a test file";
+        String fileContent = "This is a test file content.";
+        String personalFolder = "akobelskiy-test"; // Используйте значение из application-test.properties
 
         // Создаем бакет, если он не существует
         createBucketIfNotExists(bucketName);
 
-        // Проверяем, что бакет создан
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .until(() -> s3AsyncClient.listBuckets().join()
-                        .buckets().stream()
-                        .anyMatch(bucket -> bucket.name().equals(bucketName)));
+        // Логируем проверку наличия бакета
+        boolean bucketExists = s3AsyncClient.listBuckets().join()
+                .buckets()
+                .stream()
+                .anyMatch(bucket -> bucket.name().equals(bucketName));
+        System.out.println("Бакет существует после создания: " + bucketExists);
 
-        // Создаем временный файл
-        Path tempFile = Files.createTempFile("temp-", ".txt");
+        // Создаем mock файл для загрузки
+        Path tempFile = Files.createTempFile(fileName, ".txt");
         Files.writeString(tempFile, fileContent);
 
-        // Загружаем файл в S3
-        s3AsyncClient.putObject(
-                b -> b.bucket(bucketName).key(fileName),
-                tempFile
-        ).join();
+        MockMultipartFile mockMultipartFile = new MockMultipartFile(
+                "file",
+                fileName,
+                MediaType.TEXT_PLAIN_VALUE,
+                Files.readAllBytes(tempFile)
+        );
 
-        // Проверяем, что файл существует в бакете
-        boolean fileExists = s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("file", mockMultipartFile.getResource());
+
+        // Выполняем запрос с имитацией аутентифицированного пользователя
+        webTestClient.mutateWith(mockUser().roles("MODERATOR")) // Указываем роль пользователя
+                .post()
+                .uri("/api/v1/files")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .consumeWith(response -> {
+                    String responseBody = response.getResponseBody();
+                    assertNotNull(responseBody);
+                    assertTrue(responseBody.contains("File uploaded successfully"), "Ответ должен содержать сообщение о загрузке файла");
+                });
+
+        // Логируем содержимое бакета
+        System.out.println("Проверяем наличие файла в S3...");
+        s3AsyncClient.listObjectsV2(request -> request.bucket(bucketName).prefix(personalFolder + "/"))
+                .join()
+                .contents()
+                .forEach(object -> System.out.println("Файл в S3: " + object.key()));
+
+        // Проверяем, что файл был загружен в S3
+        boolean fileExists = s3AsyncClient.listObjectsV2(request -> request.bucket(bucketName).prefix(personalFolder + "/" + fileName))
                 .join()
                 .contents()
                 .stream()
-                .anyMatch(object -> object.key().equals(fileName));
+                .anyMatch(object -> object.key().equals(personalFolder + "/" + fileName));
 
-        assertTrue(fileExists, "Файл должен существовать в бакете");
+        assertTrue(fileExists, "Файл должен быть загружен в S3");
 
         // Удаляем временный файл
         Files.deleteIfExists(tempFile);
     }
-
-
-//    ///////////////////////////////////////////////////////////////////
-//    @Test
-//    @DisplayName("Успешная загрузка файла")
-//    public void testUploadFileSuccess() throws IOException {
-//        // Название бакета
-//        String bucketName = "akobelskiy-test";
-//        String randomFileName = "test-file-" + UUID.randomUUID() + ".txt"; // Уникальное имя файла
-//        String fileContent = "This is a test file";
-//
-//        // Создаем бакет, если он отсутствует
-//        createBucketIfNotExists(bucketName);
-//
-//        // Убеждаемся, что бакет существует
-//        Awaitility.await()
-//                .atMost(Duration.ofSeconds(10))
-//                .until(() -> s3AsyncClient.listBuckets().join()
-//                        .buckets().stream()
-//                        .anyMatch(bucket -> bucket.name().equals(bucketName)));
-//
-//        // Создаем временный файл для загрузки
-//        Path tempFile = Files.createTempFile(randomFileName, null);
-//        Files.writeString(tempFile, fileContent);
-//
-//        // Загружаем файл через контроллер
-//        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
-//        bodyBuilder.part("file", tempFile.toFile())
-//                .header("Content-Disposition", "form-data; name=file; filename=" + randomFileName);
-//
-//        webTestClient.mutateWith(mockUser().roles("ADMIN"))
-//    //    webTestClient.mutateWith(mockUser("testUser").roles("MODERATOR"))
-//                .post()
-//                .uri("/api/v1/files")
-//                .contentType(MediaType.MULTIPART_FORM_DATA)
-//                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBody(String.class)
-//                .value(response -> assertTrue(response.contains("File uploaded successfully"),
-//                        "Response should indicate successful upload"));
-//
-//        // Проверяем, что файл существует в бакете
-//        Awaitility.await()
-//                .atMost(Duration.ofSeconds(10))
-//                .until(() -> s3AsyncClient.listObjectsV2(b -> b.bucket(bucketName))
-//                        .join().contents().stream()
-//                        .anyMatch(object -> object.key().equals(randomFileName)));
-//
-//        // Удаляем временный файл
-//        Files.deleteIfExists(tempFile);
-//    }
-// ///////////////////////////////////////////////////////////////
-
-//    @Test
-//    @DisplayName("Неуспешная загрузка файла (ошибка сервера)")
-//    public void testUploadFileServerError() {
-//        webTestClient.post()
-//                .uri("/api/v1/files")
-//                .contentType(MediaType.MULTIPART_FORM_DATA)
-//                .exchange()
-//                .expectStatus().is5xxServerError()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("An error occurred"));
-//    }
-//
-//    @Test
-//    @DisplayName("Успешное получение файла по ID")
-//    public void testGetFileByIdSuccess() {
-//        FileEntity file = new FileEntity();
-//        file.setFileName("test.txt");
-//        file.setLocation("path/to/test.txt");
-//        file.setStatus(Status.ACTIVE);
-//        file = fileRepository.save(file).block();
-//
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .get()
-//                .uri("/api/v1/files/" + file.getId())
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBody(String.class)
-//                .value(body -> assert body.equals("path/to/test.txt"));
-//    }
-//
-//    @Test
-//    @DisplayName("Неуспешное получение файла по ID (файл не найден)")
-//    public void testGetFileByIdNotFound() {
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .get()
-//                .uri("/api/v1/files/999")
-//                .exchange()
-//                .expectStatus().isNotFound()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("File not found"));
-//    }
-//
-//    @Test
-//    @DisplayName("Успешное удаление файла")
-//    public void testDeleteFileSuccess() {
-//        FileEntity file = new FileEntity();
-//        file.setFileName("test.txt");
-//        file.setLocation("path/to/test.txt");
-//        file.setStatus(Status.ACTIVE);
-//        file = fileRepository.save(file).block();
-//
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .delete()
-//                .uri("/api/v1/files/" + file.getId())
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("File successfully deleted"));
-//    }
-//
-//    @Test
-//    @DisplayName("Неуспешное удаление файла (файл не найден)")
-//    public void testDeleteFileNotFound() {
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .delete()
-//                .uri("/api/v1/files/999")
-//                .exchange()
-//                .expectStatus().isNotFound()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("File not found"));
-//    }
-//
-//    @Test
-//    @DisplayName("Успешное обновление файла")
-//    public void testUpdateFileSuccess() {
-//        FileEntity file = new FileEntity();
-//        file.setFileName("test.txt");
-//        file.setLocation("path/to/test.txt");
-//        file.setStatus(Status.ACTIVE);
-//        file = fileRepository.save(file).block();
-//
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .put()
-//                .uri("/api/v1/files/" + file.getId())
-//                .contentType(MediaType.MULTIPART_FORM_DATA)
-//                .bodyValue(Mono.just("newMockFile"))
-//                .exchange()
-//                .expectStatus().isOk()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("File successfully updated"));
-//    }
-//
-//    @Test
-//    @DisplayName("Неуспешное обновление файла (ошибка при удалении)")
-//    public void testUpdateFileDeleteError() {
-//        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
-//                .put()
-//                .uri("/api/v1/files/999")
-//                .contentType(MediaType.MULTIPART_FORM_DATA)
-//                .exchange()
-//                .expectStatus().is5xxServerError()
-//                .expectBody(String.class)
-//                .value(body -> assert body.contains("Failed to update file: could not delete existing file"));
-//    }
 }
