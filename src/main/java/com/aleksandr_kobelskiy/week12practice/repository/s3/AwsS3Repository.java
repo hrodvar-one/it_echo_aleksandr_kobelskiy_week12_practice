@@ -112,11 +112,12 @@ public class AwsS3Repository {
                     );
 
                     return Mono.fromFuture(future)
-                            .map(response -> {
+                            .handle((response, sink) -> {
                                 if (!response.sdkHttpResponse().isSuccessful()) {
-                                    throw new RuntimeException("Failed to upload file to S3: " + response.sdkHttpResponse().statusCode());
+                                    sink.error(new RuntimeException("Failed to upload file to S3: " + response.sdkHttpResponse().statusCode()));
+                                    return;
                                 }
-                                return endpointOverride + "/" + bucketName + "/" + key; // Возвращаем URL-адрес файла
+                                sink.next(endpointOverride + "/" + bucketName + "/" + key); // Возвращаем URL-адрес файла
                             });
                 });
     }
