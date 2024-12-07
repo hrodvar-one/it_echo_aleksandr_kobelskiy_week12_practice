@@ -292,4 +292,16 @@ public class itFileRestControllerV1Test {
                 .expectBody(String.class)
                 .value(body -> assertEquals("path/to/test.txt", body, "Ответ должен содержать правильное расположение файла"));
     }
+
+    @Test
+    @DisplayName("Неуспешное получение файла по ID (файл не найден)")
+    public void testGetFileByIdNotFound() {
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .get()
+                .uri("/api/v1/files/999")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody(String.class)
+                .value(body -> assertTrue(body.contains("File not found"), "Ответ должен содержать сообщение 'File not found'"));
+    }
 }
