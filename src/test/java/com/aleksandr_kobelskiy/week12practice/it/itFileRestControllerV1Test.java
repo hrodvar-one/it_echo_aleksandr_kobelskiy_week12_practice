@@ -304,4 +304,23 @@ public class itFileRestControllerV1Test {
                 .expectBody(String.class)
                 .value(body -> assertTrue(body.contains("File not found"), "Ответ должен содержать сообщение 'File not found'"));
     }
+
+    @Test
+    @DisplayName("Успешное удаление файла")
+    public void testDeleteFileSuccess() {
+        FileEntity file = new FileEntity();
+        file.setFileName("test.txt");
+        file.setLocation("path/to/test.txt");
+        file.setStatus(Status.ACTIVE);
+        file = fileRepository.save(file).block();
+
+        webTestClient.mutateWith(mockUser().roles("MODERATOR"))
+                .delete()
+                .uri("/api/v1/files/" + file.getId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .value(body -> assertTrue(body.contains("File successfully deleted"),
+                        "Ответ должен содержать сообщение 'File successfully deleted'"));
+    }
 }
